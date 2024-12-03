@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Google Auth</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- 引入 SweetAlert2 的 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.6/dist/sweetalert2.min.css" rel="stylesheet">
+
+  <!-- 引入 SweetAlert2 的 JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.6/dist/sweetalert2.all.min.js"></script>
+</head>
+<body>
+  <div id="auth-container">
+    <h1>會員系統</h1>
+    <button id="register-button">註冊</button>
+    <button id="login-button">登入</button>
+    <div id="user-info" style="display:none;">
+      <img id="user-photo" alt="User Photo">
+      <p id="user-name"></p>
+      <p id="user-email"></p>
+      <p id="last-login"></p>
+      
+
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyALQrpW-uaTNxm6UhyUNz2K-tnHFXL8n4w",
+    authDomain: "project-190028409776314173.firebaseapp.com",
+    projectId: "project-190028409776314173",
+    databaseURL:"https://project-190028409776314173-default-rtdb.firebaseio.com/",
+    storageBucket: "project-190028409776314173.firebasestorage.app",
+    messagingSenderId: "634247389259",
+    appId: "1:634247389259:web:b7a1f6b2fae1ef4618adce",
+    measurementId: "G-4FL0989277"
+  };
+  const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const database = getDatabase(app);
+
+
+// 存到 Cookie 的方法
+function saveToCookie(data) {
+    // 清除所有 Cookie
+    document.cookie.split(";").forEach((cookie) => {
+        const cookieName = cookie.split("=")[0].trim();
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+    });
+    const { displayName, email, photoURL, lastLoginTime, uid } = data;
+
+    // 將資料存為 JSON 字符串
+    const userData = JSON.stringify({ displayName, email, photoURL, lastLoginTime, uid });
+
+    // 設置 Cookie (有效期 7 天)
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+    document.cookie = `userData=${encodeURIComponent(userData)}; expires=${expires.toUTCString()}; path=/`;
+
+    console.log("Data saved to cookie:", userData);
+}
+// 從 Cookie 顯示資料的方法
+function getFromCookie() {
+    // 解析 Cookie 字符串
+    const cookies = document.cookie.split("; ");
+    const userCookie = cookies.find(cookie => cookie.startsWith("userData="));
+
+    if (!userCookie) {
+        console.log("No user data found in cookie.");
+        return null;
+    }
+
+    // 解碼並解析 JSON
+    const userData = JSON.parse(decodeURIComponent(userCookie.split("=")[1]));
+    console.log("Data retrieved from cookie:", userData);
+    return userData;
+}
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("register-button").addEventListener("click", (event) => {
+        event.preventDefault();  // 阻止預設行為
+        googleRegister();  // 呼叫註冊函數
+    });
+    document.getElementById("login-button").addEventListener("click", (event) => {
+        event.preventDefault();  // 阻止預設行為
+        googleLogin();  // 呼叫登入函數
+    });
+});
+
+
+async function googleRegister() {
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const uid = user.uid;
+        const { displayName, email, photoURL } = user;
+
+        // 檢查使用者是否已存在
+        const userRef = ref(database, 'users/' + uid);
+
+        const snapshot = await get(userRef); // 使用 get() 來一次性獲取資料
+        if (snapshot.exists()) {
+            console.log("已經註冊");
+            Swal.fire({
+                icon: 'error',
+                title: '使用者已經註冊！',
+                text: '請稍後再試，或直接登入。',
+                confirmButtonText: '確定',
+            });
+            return;
+        } else {
+            // 存儲新使用者資訊，並將註冊時間設置為當前時間
+            const lastLoginTime = new Date().toISOString();
+            await set(userRef, {
+                displayName,
+                email,
+                photoURL,
+                lastLoginTime
+            });
+            saveToCookie({ displayName, email, photoURL, lastLoginTime, uid });
+
+            Swal.fire({
+                icon: 'success',
+                title: '註冊成功！！',
+                text: '請稍後再試，或直接登入。',
+                confirmButtonText: '確定',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "./aaa.html";  // 轉向新頁面
+                    return;
+                }
+            });
+
+            console.log("註冊成功！", { displayName, email, photoURL, lastLoginTime });
+            return;
+        }
+    } catch (error) {
+        console.error("註冊失敗:", error);
+        Swal.fire({
+            icon: 'error',
+            title: '註冊失敗',
+            text: error.message,
+            confirmButtonText: '確定',
+        });
+    }
+}
+// Google 登入功能
+async function googleLogin() {
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const uid = user.uid;
+
+        // 獲取使用者資訊
+        const userRef = ref(database, 'users/' + uid);
+
+        const snapshot = await get(userRef); // 使用 get() 來一次性獲取資料
+        if (snapshot.exists()) {
+            const { displayName, email, photoURL, lastLoginTime } = snapshot.val();
+            const newLastLoginTime = new Date().toISOString();
+            await update(userRef, { lastLoginTime: newLastLoginTime });
+
+            console.log("登入成功", { displayName, email, photoURL, lastLoginTime, newLastLoginTime });
+            saveToCookie({ displayName, email, photoURL, lastLoginTime, uid });
+            window.location.href = "./aaa.html";
+        } else {
+            console.log("使用者未註冊，請先註冊！");
+            Swal.fire({
+                icon: 'error',
+                title: '使用者未註冊，請先註冊！',
+                text: '請稍後再試，或聯繫支援。',
+                confirmButtonText: '確定',
+            });
+        }
+    } catch (error) {
+        console.error("登入失敗:", error);
+        Swal.fire({
+            icon: 'error',
+            title: '登入失敗',
+            text: error.message,
+            confirmButtonText: '確定',
+        });
+    }
+}
+</script>
+</body>
+</html>

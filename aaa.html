@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登入成功</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+  <img id="user-photo" alt="User Photo">
+  <h1>歡迎回來，<span id="user-name"></span>!</h1>
+  <div class="info">
+    <p><strong>Email：</strong><span id="user-email"></span></p>
+    <p><strong>最後登入時間：</strong><span id="last-login"></span></p>
+  </div>
+  <button id="show-user-info" class="btn">顯示使用者信息</button>
+  <a href="#" class="logout-btn" id="logout">登出</a>
+
+<!-- Modal for User Info -->
+<div id="user-info-modal" class="modal">
+  <div class="modal-content">
+    <span id="close-user-modal" class="close-btn">&times;</span>
+    <h3>使用者資訊</h3>
+    <p><strong>名稱：</strong><span id="modal-user-name"></span></p>
+    <p><strong>Email：</strong><span id="modal-user-email"></span></p>
+    <p><strong>最後登入時間：</strong><span id="modal-last-login"></span></p>
+  </div>
+</div>
+
+  <!-- 筆記系統 -->
+  <h2>我的筆記</h2>
+  <button id="add-note-btn" class="btn">新增筆記</button>
+  <ul id="notes-list"></ul>
+</div>
+
+<div id="note-modal" class="modal">
+  <div class="modal-content">
+    <span id="close-note-modal" class="close-btn">&times;</span>
+    <h3>筆記標題</h3>
+    <textarea id="note-content"></textarea>
+    <button id="save-note"class="btn">儲存筆記</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" crossorigin="anonymous"></script>
+<script type="module" src="scripts.js"></script>
+</body>
+</html>
